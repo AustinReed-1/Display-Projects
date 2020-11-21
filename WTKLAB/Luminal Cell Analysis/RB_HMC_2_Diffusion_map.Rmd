@@ -1,0 +1,146 @@
+---
+title: "RB_HMC_2_Diffusion_map"
+author: "Austin Reed"
+date: "01/09/2020"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(diffusionMap)
+
+#Bioc Packages
+library(scran)
+library(scater)
+library(destiny)
+
+
+sce.LumHMC <- readRDS("../../data/RB_vs_HMC/Luminal_HMC/sce_HMCsubC1.rds")
+#sce.LumHMC
+```
+
+Selecting out the luminal class cells
+```{r}
+#as the previous analysis didn't appear to show much significant heterogeneity between the RB and HMC cells within the Milk bigcluster I will not subsection them for this analysis
+#I tested this on sce.toy2 and it seemed to work fine there so it should work fine here too
+
+#sce is your large data set
+
+sce.LumHMC <- sce[,colData(sce)$Classes == 'Luminal_HMC']
+sce.LP <- sce[,colData(sce)$Classes == 'Luminal_LP']
+sce.HR <- sce[,colData(sce)$Classes == 'Luminal_HR']
+
+Barcodes.LumHMC <- sample(sce.LumHMC$Barcode,1000)
+Barcodes.LP <- sample(sce.LP$Barcode,1000)
+Barcodes.HR <- sample(sce.HR$Barcode,1000)
+Barcodes <- c(Barcodes.LumHMC,Barcodes.LP,Barcodes.HR)
+
+sce.sub <- sce[,Barcodes]
+sce.sub
+table(sce.sub$Classes)
+```
+
+selecting big Cluster
+```{r}
+sce.LumHMC <- sce.LumHMC[,colData(sce.LumHMC)$big.clusters == 'cluster1']
+colData(sce.LumHMC)
+```
+
+Considering only HVG's (This was an attempt at the method you sent but many functions had become defunct and I couldnt quite get it to work so I'll do my own method in the next code block)
+```{r}
+# m = as.matrix(logcounts(sce.LumHMC))
+# 
+# #trendVar() is defunct I will use fitTrendVar() instead
+# means <- rowMeans(m)
+# vars <- rowVars(m)
+# fit <- fitTrendVar(means,vars, parametric=TRUE)
+# decVar <- modelGeneVar(m,fit)
+# ord.decVar <- decVar[order(decVar$bio,decreasing=TRUE),]
+# hvg <- ord.decVar[1:(nrow(ord.decVar)/20),]
+```
+
+Gene var
+```{r}
+m = as.matrix(logcounts(sce.LumHMC))
+
+dec <- modelGeneVar(sce.LumHMC)
+hvg <-getTopHVGs(dec, prop = 0.1)
+head(hvg)
+```
+
+DM construction (OLD)
+```{r}
+# set.seed(1)
+# dm <- calculateDiffusionMap(sce.LumHMC, ncomponents=2,subset_row=hvg, dimred='PCA')
+```
+
+
+Generate map coordinates (think its now working)
+```{r}
+set.seed(6)
+#Takes a *very*(5-10ish mins I think) long time on my computer so try with PCA
+dm <- DiffusionMap(data=t(m[hvg,]), n_pcs = 50)
+```
+
+
+Prepare to plot
+```{r}
+colData(sce.LumHMC)$DC1 <- dm$DC1
+colData(sce.LumHMC)$DC2 <- dm$DC2
+
+
+# head(DC1)
+# head(DC2)
+```
+
+Plot coloured by state
+```{r}
+p <- ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=DC1, y=DC2, color=State)) +
+  geom_point()
+
+ggsave(filename="../../data/RB_vs_HMC/Luminal_HMC/Diffusion_map_RB_HMC.pdf",p,width=8,height=8)
+
+p
+```
+
+Plot coloured by Cluster
+```{r}
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4")
+
+p.sample <- ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=DC1, y=DC2, color=Sample)) + 
+  geom_point() + scale_color_manual(values=setNames(sample.colours, sample.set)) +
+  theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p.sample
+
+p.cluster <- ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=DC1, y=DC2, color=GraphClusters)) + geom_point() + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p.cluster
+```
+
+Plot coloured by Sample
+```{r}
+
+```
+
+Psuedotime analysis
+```{r}
+rootcell <- which.min(dm$DC2)
+
+dpt <- DPT(dm, tips = rootcell)
+plot(dpt)
+```
+
+```{r}
+pdf("../../data/RB_vs_HMC/Luminal_HMC/dpt_HMCLuminalRestingBasal.pdf", width=8, height=8)
+plot(dpt)
+
+dev.off()
+```
+
+Return the session information
+```{r}
+sessionInfo()
+```
+

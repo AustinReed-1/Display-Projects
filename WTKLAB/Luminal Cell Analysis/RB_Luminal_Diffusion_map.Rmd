@@ -1,0 +1,86 @@
+---
+title: "RB_Luminal_Diffusion_map"
+author: "Austin Reed"
+date: "09/09/2020"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(diffusionMap)
+
+#Bioc Packages
+library(scran)
+library(scater)
+library(destiny)
+
+#OR wherever your sce is saved
+sce <- readRDS("../../data/RB_vs_HMC/Luminal_HMC/sce_HMCsubC1.rds")
+sce
+```
+Get RB cells only and split by sample
+```{r}
+#Just Luminal cells
+sce.HMC <- sce[,colData(sce)$Classes== 'Luminal_HMC']
+sce.LP <- sce[,colData(sce)$Classes== 'Luminal_LP']
+sce.HR <- sce[,colData(sce)$Classes== 'Luminal_HR']
+
+BarcodeHMC <- sce.HMC$Barcode
+BarcodeLP <- sce.LP$Barcode
+BarcodeHR <- sce.HR$Barcode
+
+Barcodes <- c(BarcodeHMC, BarcodeLP, BarcodeHR)
+
+sce<- sce[,Barcodes]
+sce
+
+sce.RB1 <- sce[,colData(sce)$Sample == 'RB1']
+sce.RB2 <- sce[,colData(sce)$Sample == 'RB2']
+sce.RB3 <- sce[,colData(sce)$Sample == 'RB3']
+sce.RB4 <- sce[,colData(sce)$Sample == 'RB4']
+```
+
+create diffusion map
+```{r}
+#Choose Sample to look at (ie RB1, RB2, RB3 or RB4)
+sce.sample <- sce.RB1
+
+
+#Gene var
+m = as.matrix(logcounts(sce.sample))
+dec <- modelGeneVar(sce.sample)
+hvg <-getTopHVGs(dec, prop = 0.1)
+head(hvg)
+
+#Generate diff map and coords
+set.seed(1)
+dm <- DiffusionMap(data=t(m[hvg,]), n_pcs = 50)
+colData(sce.sample)$DC1 <- dm$DC1
+colData(sce.sample)$DC2 <- dm$DC2
+
+#plot DM
+p <- ggplot(as.data.frame(colData(sce.sample)), aes(x=DC1, y=DC2, color=Classes)) +
+  geom_point()
+#ggsave(filename="../../data/RB_vs_HMC/Luminal_HMC/Diffusion_map_RB_HMC.pdf",p,width=8,height=8)
+p
+
+#Psuedotime analysis
+rootcell <- which.min(dm$DC2)
+dpt <- DPT(dm, tips = rootcell)
+plot(dpt)
+
+# pdf("../../data/RB_vs_HMC/Luminal_HMC/dpt_HMCLuminalRestingBasal.pdf", width=8, height=8)
+# plot(dpt)
+# dev.off()
+```
+
+Return the session information
+```{r}
+sessionInfo()
+```
+```
+
+
+
