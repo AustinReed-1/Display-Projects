@@ -1,0 +1,587 @@
+---
+title: "RB_HMC_2_Differential_expression"
+author: "Austin Reed"
+date: "28/08/2020"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(scatterplot3d)
+library(pheatmap)
+
+#Bioc Packages
+library(scran)
+library(scater)
+library(iSEE)
+library(rgl)
+library(edgeR)
+library(EnhancedVolcano)
+library(topGO)
+library(org.Hs.eg.db)
+library(Rgraphviz)
+
+sce.LumHMC <- readRDS("../../data/RB_vs_HMC/Luminal_HMC/sce_HMCsubC1.rds")
+```
+
+UMAP
+```{r}
+plotUMAP(sce.LumHMC, colour_by = 'GraphClusters')
+plotUMAP(sce.LumHMC, colour_by='State')
+```
+
+Have a look at the clusters and types of cells in each
+```{r}
+table(sce.LumHMC$State,sce.LumHMC$GraphClusters)
+```
+Again but for sample
+```{r}
+table(sce.LumHMC$Sample,sce.LumHMC$GraphClusters)
+```
+
+
+I will then compare the 193 RB cells to a random selection of 193 HM cells from this BigCluster.
+Collect the samples for comparison
+```{r}
+set.seed(100)
+sce.HM <- sce.LumHMC[,colData(sce.LumHMC)$State=='HM']
+HMbarcodes <- sample(colData(sce.HM)$Barcode, 193)
+
+sce.RB <- sce.LumHMC[,colData(sce.LumHMC)$State=='RB']
+RBbarcodes <- colData(sce.RB)$Barcode
+
+barcodes <- c(HMbarcodes, RBbarcodes)
+
+sce.Lum.mini <- sce.LumHMC[,barcodes]
+sce.Lum.mini
+
+# set.seed = 100
+# 
+# keep1 = mapply(function(x) { if (x=='RB') return(TRUE) else return(FALSE) }, sce.LumHMC$State)
+# table(keep1)
+# 
+# sce.sample <- sce.LumHMC[,!keep1]
+# keep <- sample(sce.sample$Barcode, 193)
+# a <- !(keep1+!keep1)
+# for (i in keep) {
+#   a <- a + (mapply(function(x) { if (x==i) return(TRUE) else return(FALSE) }, sce.LumHMC$Barcode))
+# }
+# 
+# keep2 <- as.logical(a)
+# 
+# sce.LumHMC$keep1 <- keep1
+# sce.LumHMC$keep2 <- keep2
+```
+
+
+Then create aggregate summed vectors to compare
+```{r}
+summed <- aggregateAcrossCells(sce.Lum.mini,
+                               ids=DataFrame(label=sce.Lum.mini$State,
+                                             sample=sce.Lum.mini$Sample))
+summed
+table(summed$label,summed$sample)
+```
+
+Make DGEList object
+```{r}
+y <- DGEList(counts(summed), samples=colData(summed))
+y
+```
+Pre-processing
+```{r}
+discarded <- isOutlier(y$samples$lib.size, log=TRUE, type='lower')
+y <- y[,!discarded]
+summary(discarded)
+```
+
+Removing lowly expressed genes
+```{r}
+keep <- filterByExpr(y,group=summed$State)
+summary(keep)
+y <- y[keep,]
+```
+
+Normalize
+```{r}
+y <- calcNormFactors(y)
+y$samples
+```
+ 
+
+Stat modelling
+```{r}
+design <- model.matrix(~factor(State) , y$samples)
+design
+```
+
+NB dispersion estimation
+```{r}
+y <- estimateDisp(y, design)
+summary(y$trended.dispersion)
+y
+```
+
+Plot biological coefficient of variation graph
+```{r}
+plotBCV(y)
+```
+Find QL neg. bin. fit
+```{r}
+fit <- glmQLFit(y, design, robust=TRUE)
+summary(fit$var.prior)
+summary(fit$df.prior)
+```
+ 
+
+Plot this
+```{r}
+plotQLDisp(fit)
+```
+
+Run test
+```{r}
+res <- glmQLFTest(fit, coef=ncol(design))
+summary(decideTests(res))
+```
+
+See top gene markers
+```{r}
+topTags(res)
+```
+
+Adding false discovery rate (FDR) values to the res$table and saving this as a new object DEGs with the rows in order of the FDR
+```{r}
+res$table$FDR <- p.adjust(res$table$PValue, method="BH")
+DEGs <- res$table[order(res$table$FDR),]
+dim(DEGs) #1786x5
+write.csv(DEGs, file= "../../data/RB_vs_HMC/Luminal_HMC/HMC_Cluster_DEGs.csv")
+```
+Volcano plot
+```{r}
+Volcano <- EnhancedVolcano(DEGs,
+lab = rownames(DEGs),
+x = 'logFC',
+y = 'FDR',
+title = 'DEGs RB in HMC cluster',
+subtitle = '',
+subtitleLabSize = 2,
+legendPosition = "bottom",
+pointSize = 3.0,
+labSize = 2.0,
+FCcutoff = 1,
+pCutoff = 10e-2,
+col = c("grey", "forestgreen", "steelblue", "red"),
+#legendVisible = FALSE,
+drawConnectors = FALSE,
+typeConnectors = 'open')
+Volcano
+
+pdf("../../data/RB_vs_HMC/Luminal_HMC/HMC_Clusters_Volcano.pdf", width=12,height = 8)
+Volcano
+dev.off()
+```
+
+<!-- Summary table -->
+<!-- ```{r} -->
+<!-- sumry <- group_by(y$counts, y$State) %>% -->
+<!--           summarise("Number of cells"=n(), -->
+<!--           "UMIs"=median(sum), -->
+<!--           "Genes Detected"=median(detected), -->
+<!--           "HMC1"=count(Sample=="HMC1"), -->
+<!--           "HMC2"=count(Sample=="HMC2"), -->
+<!--           "HMC3"=count(Sample=="HMC3"), -->
+<!--           "HMC4"=count(Sample=="HMC4")) -->
+<!-- kable(sumry,caption="Summary of cluster content") -->
+<!-- ``` -->
+
+```{r}
+coloured <- c("#00BFC4", "#F8766D")
+Lum.clus <- c("RB", "HM")
+
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4")
+ 
+
+#Genes with highest logFC c("MGP", "SFRP1", "CD74")
+#Genes with lowest logFC c("DDIT4", "ATF3", "IER2")
+#Genes associated with milk production c("LALBA", "CSN2", "CSN3")
+Genes <- c("LALBA", "CSN2", "CSN3", "MGP", "SFRP1", "CD74", "DDIT4", "ATF3", "IER2")
+myGraphs <- list()
+pdf("../../data/RB_vs_HMC/Luminal_HMC/DEG_box_plots", width=12, height=8)
+for (Gene in Genes) {
+
+  m = logcounts(sce.Lum.mini)
+  myGene <- as.numeric(m[Gene,])
+
+ 
+
+  GeneOfInterest <- ggplot(as.data.frame(colData(sce.Lum.mini)), aes(x=State,y=myGene, fill=State)) +
+    geom_jitter(aes(color=Sample), alpha=0.5, pch=19) +
+    geom_boxplot(draw_quantiles=0.5) +
+    ylab(Gene) +
+  #  scale_y_log10() + 
+    ggtitle(Gene) +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) + 
+    scale_fill_manual(values=setNames(coloured,Lum.clus))
+myGraphs[[Gene]] <- GeneOfInterest
+print(myGraphs[[Gene]])
+  }
+
+ 
+
+dev.off()
+```
+
+
+```{r}
+coloured <- c("#00BFC4", "#F8766D")
+Lum.clus <- c("RB", "HM")
+
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4")
+ 
+
+#Genes with highest logFC c("MGP", "SFRP1", "CD74")
+#Genes with lowest logFC c("DDIT4", "ATF3", "IER2")
+#Genes associated with milk production c("LALBA", "CSN2", "CSN3")
+Genes <- c("LALBA", "CSN2", "CSN3", "MGP", "SFRP1", "CD74", "DDIT4", "ATF3", "IER2")
+myGraphs <- list()
+pdf("../../data/RB_vs_HMC/Luminal_HMC/DEG_box_plots2", width=12, height=8)
+for (Gene in Genes) {
+
+  m = counts(summed)
+  myGene <- as.numeric(m[Gene,])
+
+ 
+
+  GeneOfInterest <- ggplot(as.data.frame(colData(summed)), aes(x=State,y=myGene, fill=State)) +
+    geom_jitter(aes(color=Sample), alpha=0.5, pch=19) +
+    geom_boxplot(draw_quantiles=0.5) +
+    ylab(Gene) +
+    ggtitle(Gene) +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) + 
+    scale_fill_manual(values=setNames(coloured,Lum.clus))
+myGraphs[[Gene]] <- GeneOfInterest
+print(myGraphs[[Gene]])
+  }
+
+ 
+
+dev.off()
+```
+
+----- Now Look at box plots for all Luminal HMC cells -----
+
+```{r}
+coloured <- c("#00BFC4", "#F8766D")
+Lum.clus <- c("RB", "HM")
+
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4")
+ 
+
+#Genes with highest logFC c("MGP", "SFRP1", "CD74")
+#Genes with lowest logFC c("DDIT4", "ATF3", "IER2")
+#Genes associated with milk production c("LALBA", "CSN2", "CSN3")
+Genes <- c("LALBA", "CSN2", "CSN3", "MGP")
+myGraphs <- list()
+pdf("../../data/RB_vs_HMC/Luminal_HMC/DEG_box_plots3", width=12, height=8)
+for (Gene in Genes) {
+
+  m = logcounts(sce.LumHMC)
+  myGene <- as.numeric(m[Gene,])
+
+ 
+
+  GeneOfInterest <- ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=State,y=myGene, fill=State)) +
+    geom_jitter(aes(color=Sample), alpha=0.5, pch=19) +
+    geom_boxplot(draw_quantiles=0.5) +
+    ylab(Gene) +
+    ggtitle(Gene) +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) + 
+    scale_fill_manual(values=setNames(coloured,Lum.clus))
+myGraphs[[Gene]] <- GeneOfInterest
+print(myGraphs[[Gene]])
+  }
+ 
+
+dev.off()
+```
+
+
+PLotting all together (no separation by state)
+```{r}
+coloured <- c("#00BFC4", "#F8766D")
+Lum.clus <- c("RB", "HM")
+
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4")
+ 
+
+#Genes with highest logFC c("MGP", "SFRP1", "CD74")
+#Genes with lowest logFC c("DDIT4", "ATF3", "IER2")
+#Genes associated with milk production c("LALBA", "CSN2", "CSN3")
+Genes <- c("LALBA", "CSN2", "CSN3", "MGP")
+myGraphs <- list()
+pdf("../../data/RB_vs_HMC/Luminal_HMC/DEG_box_plots4", width=10, height=7)
+for (Gene in Genes) {
+
+  m = logcounts(sce.LumHMC)
+  myGene <- as.numeric(m[Gene,])
+
+ 
+
+  GeneOfInterest <- ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=Classes, y=myGene, sixe=1)) +
+    geom_jitter(aes(color=Sample, size = State), alpha=0.5, pch=19) +
+    ylab(Gene) +
+    ggtitle(Gene) +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) 
+myGraphs[[Gene]] <- GeneOfInterest
+print(myGraphs[[Gene]])
+  }
+ 
+
+dev.off()
+```
+
+Segregate by Clusters
+```{r}
+coloured <- c("#00BFC4", "#F8766D")
+Lum.clus <- c("RB", "HM")
+
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4")
+ 
+
+#Genes with highest logFC c("MGP", "SFRP1", "CD74")
+#Genes with lowest logFC c("DDIT4", "ATF3", "IER2")
+#Genes associated with milk production c("LALBA", "CSN2", "CSN3")
+Genes <- c("LALBA", "CSN2", "CSN3", "MGP")
+myGraphs <- list()
+pdf("../../data/RB_vs_HMC/Luminal_HMC/DEG_box_plots5", width=12, height=8)
+for (Gene in Genes) {
+
+  m = logcounts(sce.LumHMC)
+  myGene <- as.numeric(m[Gene,])
+
+ 
+
+  GeneOfInterest <- ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=GraphClusters, y=myGene, sixe=1)) +
+    geom_jitter(aes(color=Sample, size = State), alpha=0.5, pch=19) +
+    ylab(Gene) +
+    ggtitle(Gene) +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) 
+myGraphs[[Gene]] <- GeneOfInterest
+print(myGraphs[[Gene]])
+  }
+ 
+
+dev.off()
+```
+
+Scatter Graph showing the correlation between LALBA and CSN2 in Luminal HMC cells
+```{r}
+m=logcounts(sce.LumHMC)
+
+sample.set <- c("HMC1", "HMC2", "HMC3","HMC4", "RB1", "RB2","RB3","RB4")
+sample.colours <- c("salmon1", "peachpuff2", "burlywood", "#F8766D", "steelblue3", "slategray3", "paleturquoise3","#00BFC4") 
+
+ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=m['CSN2',], y=m['LALBA',], sixe=1)) +
+    geom_jitter(aes(color=Sample), alpha=0.5, pch=19) +
+    ylab('LALBA logcounts per cell') + xlab('CSN2 logcounts per cell') +
+    ggtitle('LALBA CSN2 Correlation') +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) +
+    geom_smooth(method = "lm", colour='black', formula=y~x) 
+```
+
+RB vs HMC gene counts
+```{r}
+coloured <- c("#00BFC4", "#F8766D")
+Lum.clus <- c("RB", "HM")
+
+ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=State, y=sum)) +
+    geom_jitter(aes(color=Sample), alpha=0.5, pch=19) +
+    geom_violin(aes(fill=State)) +
+    ylab('Total UMI counts per cell') +
+    scale_y_log10() +
+    ggtitle('UMI counts vs State') +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) +
+    scale_fill_manual(values=setNames(coloured, Lum.clus))
+```
+
+
+RB vs HMC gene counts
+```{r}
+ggplot(as.data.frame(colData(sce.LumHMC)), aes(x=State, y=detected)) +
+    geom_jitter(aes(color=Sample), alpha=0.5, pch=19) +
+    geom_violin(aes(fill=State)) +
+    ylab('Unique gene counts per cell') +
+    scale_y_log10() +
+    ggtitle('Unique gene expression vs State') +
+    theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+    scale_color_manual(values=setNames(sample.colours, sample.set)) +
+    scale_fill_manual(values=setNames(coloured, Lum.clus))
+```
+
+
+**GO term Analysis**
+
+Determine Significant genes
+```{r}
+#All sig genes (Large FDR required as cells are very similar)
+sig.genes <- subset(DEGs, DEGs$FDR < 0.15)
+dim(sig.genes) #107
+
+#Up-reg genes
+up.genes <- subset(sig.genes, sig.genes$logFC > 0)
+dim(up.genes) #29
+
+#Down-reg genes
+down.genes <- subset(sig.genes, sig.genes$logFC < 0)
+dim(down.genes) #78
+```
+
+*GO term analysis of upregulated genes with biological process*
+
+GO term annotations for RB cells using FDR corrected p.values and positive FC
+
+```{r}
+#generating named vector "geneList" which
+geneList <- as.integer(rownames(res$table) %in% rownames(up.genes))
+names(geneList) <- rownames(res$table)
+count(geneList) #29
+```
+
+Setting all genes >0.01 (i.e. =1, part of our subset) as "significant"
+```{r}
+topDiffGenes <- function(allScore) {return(allScore > 0.01)}
+x <- topDiffGenes(geneList)
+
+sum(x) ## the number of selected genes -> 29
+```
+
+Creating the "topGOdata" object with at least 10 genes associated with each GO term
+```{r}
+GOdata <- new("topGOdata",
+  description = "GO analysis of HMC cluster;RB vs HM",
+  ontology = "BP",
+  allGenes = geneList,
+  geneSel = topDiffGenes,
+  annot = annFUN.org,
+  mapping = "org.Hs.eg",
+  ID = "symbol",
+  nodeSize = 10)
+GOdata
+```
+
+To get the significant genes
+```{r}
+sg <- sigGenes(GOdata)
+str(sg)
+numSigGenes(GOdata)
+#28 significant genes
+```
+Perform enrichment test, using the algorithum="weight01" (rather than algorithm = "classic") we take the GO hierarchy in to consideration
+```{r}
+resultFisher <- runTest(GOdata, algorithm = "weight01", statistic = "fisher")
+allRes <- GenTable(GOdata, classicFisher = resultFisher, orderBy = "resultFisher", ranksOf = "classicFisher", topNodes = 50, numChar=200)
+allRes
+```
+ 
+#add significant genes to the table
+```{r}
+allRes$genes <- sapply(allRes$GO.ID, function(x)
+    {
+      genes<-genesInTerm(GOdata, x)
+      genes[[1]][genes[[1]] %in% sg] # myGenes is the queried gene list
+    })
+allRes$genes[which(allRes$topGO<0.0001)] # print those only with p-value < 0.05
+allRes$genes <-vapply(allRes$genes, paste, collapse = ", ", character(1L))
+#allRes<-subset(allRes, as.numeric(allRes[,"topGO"])<0.0001 | grepl("e-", allRes[,"topGO"]))
+
+write.csv(allRes, file= "../../data/RB_vs_HMC/Luminal_HMC/RB_Upregulated_topGO.csv")
+```
+
+visualising the top nodes
+```{r}
+#pdf saved in scr HMC_vs_RB
+showSigOfNodes(GOdata, score(resultFisher), firstSigNodes = 5, useInfo ='all')
+GOdata_graph <- printGraph(GOdata, resultFisher, firstSigNodes = 5, fn.prefix = "tGO", useInfo = "all", pdfSW = TRUE)
+GOdata_graph
+
+#Finding genes of significant annotations
+length(usedGO(GOdata))
+#2927
+```
+
+Adding GeneRatio to the table which is number of significant genes annotated to the particular term divided by all terms used in the GO term analysis + making sure classidFisher registers as numeric for colour scales and ensuring "Term" is recognised not as a character so the plots will display the variables in order
+```{r}
+allRes$GeneRatio <- allRes$Significant/length(sigGenes(GOdata))
+allRes$classicFisher <- as.numeric(allRes$classicFisher)
+allRes$Term <- factor(allRes$Term, levels=allRes$Term)
+allRes
+```
+ 
+Plotting GO terms as a bubble plot, where x-axis is GeneRatio, colour is classicfisher p-value and size is the number of genes significantly annotated to the term
+```{r}
+p <- ggplot(allRes,
+      aes(x = GeneRatio, y = Term)) +
+      geom_point(aes(size = Significant, color = classicFisher)) +
+      theme_bw(base_size = 14)
+p + scale_colour_gradientn(colours= c("#FEDF8F", "#D73027"))
+
+ggsave(filename="../../data/RB_vs_HMC/Luminal_HMC/RB_Upregulated_Dotplot_GOterms_BP.pdf",width=11,height=7)
+```
+
+Plotting GO terms as a bubble plot, where x-axis is GeneRatio, colour is classicfisher p-value and size is the number of genes significantly annotated to the term Only top 10!
+```{r}
+p <- ggplot(allRes[1:10,],
+      aes(x = GeneRatio, y = Term)) +
+      geom_point(aes(size = Significant, color = classicFisher)) +
+      theme_bw(base_size = 14)
+p + scale_colour_gradientn(colours= c("#D73027","darkorange1"))
+
+ggsave(filename="../../data/RB_vs_HMC/Luminal_HMC/RB_Upregulated_Dotplot_GOterms_top10_BP.pdf",width=11,height=4)
+```
+Plotting GO terms as a bargraph, where x-axis is GeneRatio, colour is classicfisher p-value
+```{r}
+q <- ggplot(allRes,
+      aes(Term)) +
+      ylab("GeneRatio") +
+      geom_bar(aes(weight = GeneRatio, fill=classicFisher)) +
+      coord_flip() +
+      theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+q + scale_fill_gradientn(colours= c("#FEDF8F", "#D73027"))
+
+ggsave(filename="../../data/RB_vs_HMC/Luminal_HMC/RB_Upregulated_Bargraph_GOterms_BP.pdf",width=9,height=7)
+```
+
+
+
+
+
+```{r}
+sessionInfo()
+```
+
+
