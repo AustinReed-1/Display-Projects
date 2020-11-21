@@ -1,6 +1,6 @@
 ---
 title: "Testing"
-author: "Alecia"
+author: "Alecia" #my supervisor began this and helped me through as my first trial run
 date: "`r Sys.Date()`"
 output: html_document
 ---
