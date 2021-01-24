@@ -1,7 +1,7 @@
 \documentclass{article}
 
 \title{9.3 Protein Comparison in Bioinformatics}
-\date{2020-09-23}
+\date{23-09-2020}
 
 
 \usepackage{amsfonts}
@@ -43,31 +43,34 @@ We will work with two strings $S$ and $T$ of lengths $m$ and $n$ respectively, c
 \newpage
 
 \section{The Edit Distance}
+\vspace{-0.3cm}
 We refer to edits made to a string by the 4 types R,I,D,M for \textbf{R}eplacing, \textbf{I}nserting, \textbf{D}eleting and \textbf{M}atching. Optimal edit transcripts are those that minimise the number of R, I and D edits.
-
+\vspace{-0.8cm}
 \paragraph{Definition} 
 The edit distance $d(S,T)$ is the minimal number of edits between $S$ and $T$ of edit types R, I and D.
-
+\vspace{-0.8cm}
 \paragraph{Definition}
 $D(i,j)=d(S[1,i],T[1,j])$.
+\vspace{-0.3cm}
 
 \subsection{Question 1}
+\vspace{-0.3cm}
 \begin{theorem}
 For all $i,j>0$ ($\delta_{ab}$ is the Kronecker Delta function):
- 
-$D(i,j) = \min \{D(i,j-1)+1, D(i-1,j)+1, D(i-1,j-1)+(1-\delta_{S_i T_j})\}$
-\end{theorem}
 
+$D(i,j) = \min \{D(i,j-1)+1, D(i-1,j)+1, D(i-1,j-1)+(1-\delta_{S_i T_j})\}$.
+\end{theorem}
+\vspace{-0.7cm}
 \begin{proof}
 We begin by noting the four cases for the final edit being R,I,D or M as before, and consider each case. Initially assume $i,j>1$. If the final edit is \textbf{R}eplace, then we note $S_i \neq T_j$ and we have so far done $D(i-1,j-1)$ edits and require one more. If the final edit is \textbf{I}nsert, then we have so far done $D(i,j-1)$ moves and require one more. If the final move is \textbf{D}elete, then we note we have so far done $D(i-1,j)$ moves and require one more. If the final move is \textbf{M}atch, then we note $S_i=T_j$ and we have so far done $D(i-1,j-1)$ edits and require no more as we do not count M edits. Colating this together (using the Kronecker Delta function to combine R and M final edit cases), we arrive at the required solution as $D(\_,\_)$ is then the minimum of these possible cases. 
 
 Now we need to now check the cases in which $i$ or $j$ are 1. It is clear from the definitions, $D(0,a)=a$ (via all I edits) and $D(a,0)=a$ (via all D edits) for $0 < a \leq m \text{ (or) } n$ respectively and $D(0,0)=0$ trivially. It is easy to evaluate $D(1,1)=1-\delta_{S_1 T_1}=RHS$ (using the above results). Now for $a>1$, $D(1,a)=a-1$ (all inserts bar one match edit) if $S_1 \in T$ or $D(1,a)=a$ (one replace and the remaining insert edits) otherwise. These again match with the $RHS$ of the theorem. The same can be argued for $D(a,1)$ with deletions in place of the previous insertions. Together this shows the theorem to hold true for all $i,j>0$.
 \end{proof}
-
+\vspace{-0.3cm}
 
 \subsection{Question 2}
-
-We can write an iterative function (seen in program 1 REFERENCE) that calculates the value of $D(m,n)$ using the formula of Theorem 1.1 via first calculating $D(a,b)$ for $0 \leq a \leq m$ and $0 \leq b \leq n$ in the same way. The loop terminates using the fact that $D(a,0)=a$ and $D(0,b)=b$, giving $(m+1)(n+1)$ results. To ensure each value is calculated only once we store each result in a matrix as they are found and refer back to this matrix to calculate successive terms. The following shows some examples of this code in practice:
+\vspace{-0.3cm}
+We can write a function (seen in program 1, page~\pageref{subsec:Program 1}) that calculates the value of $D(m,n)$ using the formula of Theorem 1.1 via first calculating $D(a,b)$ for $0 \leq a \leq m$ and $0 \leq b \leq n$. The loop terminates using the fact that $D(a,0)=a$ and $D(0,b)=b$, giving $(m+1)(n+1)$ results. To ensure each value is calculated only once we store each result in a matrix as they are found and refer back to this matrix to calculate successive terms. The following shows some examples of this code in practice:
 
 \lstset{caption={Test 1}}
 \begin{lstlisting}
@@ -100,17 +103,17 @@ We can write an iterative function (seen in program 1 REFERENCE) that calculates
 \end{lstlisting}
 
 These match manual checks for minimal distance edit solution which gave a possible edit transcript of MRRMIMMMM for Test 1, RDDDDMMIMR for Test 2 and match boundary conditions shown in Test 3. The complexity of the algorithm is proportional to $(m+1)(n+1)$, the previously noted number of iterations, multiplied by the average number of simple operations ($\approx$10) for each iteration. Together this gives the complexity of the algorithm as $\mathcal{O} (mn)$.
-
+\vspace{-0.3cm}
 
 \subsection{Question 3}
-
-A modification of the previous program allows the production of one of the possible optimal edit transcripts between $S$ and $T$ by storing the chosen (there may be more than one possible optimal final edit at any stage) final edit for each calculated $D(a,b)$ then, using the same logic that formed the proof for Theorem 1.1, backtracking through the matrix to read one of the optimal edit paths (program 2 REFERENCE). To consider all possible optimal edit transcripts we could consider all possible final edits at each stage as a new path branch which you could find with a slight modification of the program, however, this will be left for now. 
+\vspace{-0.3cm}
+A modification of the previous program allows the production of one of the possible optimal edit transcripts between $S$ and $T$ by storing the chosen (there may be more than one possible optimal final edit at any stage) final edit for each calculated $D(a,b)$ then, using the same logic that formed the proof for Theorem 1.1, backtracking through the matrix to read one of the optimal edit paths (program 2, page~\pageref{subsec:Program 2}). To consider all possible optimal edit transcripts we could consider all possible final edits at each stage as a new path branch which you could find with a slight modification of the program, however, this will be left for now. 
 
 The following shows Program 2 run on $S$ = Protein A (duckbill platypus myoglobin protein) and $T$ = Protein B (yellowfin tuna myoglobin protein). The program is told to return only the first 50 of 160 entries in the edit transcript.
 \lstset{caption={Protein A vs Protein B (edit counts)}}
 \begin{lstlisting}
->>>S=Protein_A
->>>T=Protein_B
+>>>S=Protein_A #as string
+>>>T=Protein_B #as string
 >>>m=len(S)
 >>>n=len(T)
 >>>D_matrix = np.zeros([m+1,n+1],dtype=int)
@@ -120,15 +123,18 @@ The following shows Program 2 run on $S$ = Protein A (duckbill platypus myoglobi
 >>>transcript(D2_matrix) #first 50 of 160 edits
 'MRRRMRDDDDMMMRMMRMMRMRRRRMRRMMRMMMMRMMMMRDMIMRMMRM'
 \end{lstlisting}
+\vspace{-0.5cm}
 
 \section{Scoring Matrix}
+\vspace{-0.3cm}
 
 \subsection{Question 4}
+\vspace{-0.3cm}
 Using the BLOSUM matrices of Henikoff and Henikoff referenced in the project brief to score the likely hood of specific M and R edits between amino edits, with D and I edits given score $-8$. We will then consider $v(S,T)$ to be the maximum scoring edit transcript, similarly to $d(S,T)$ previously. It is then clear by the same logic that formed Theorem 1.1, if $V(i,j)=v(S[1,i],T[1,j])$, then
 \begin{equation}
 V(i,j) = \max(V(i,j-1)-8,V(i-1,j)-8,V(i-1,j-1)+B(S_i,T_j))
 \end{equation}
-Where $B(S_i,T_j)$ is the $(S_i,T_j)$ element of the BLOSUM matrix. Using this, Program 3 explores Proteins A and B again giving:
+Where $B(S_i,T_j)$ is the $(S_i,T_j)$ element of the BLOSUM matrix (new boundary conditions: $V(0,i)=V(i,0)=-i*8$). Using this, Program 3 (page~\pageref{subsec:Program 3}) explores Proteins A and B again, giving:
 
 \lstset{caption={Protein A vs B (score)}}
 \begin{lstlisting}
@@ -137,12 +143,15 @@ Where $B(S_i,T_j)$ is the $(S_i,T_j)$ element of the BLOSUM matrix. Using this, 
 >>>transcript_Q4(D2_matrix) #first 50 of 154 edits
 'MDDRMDDRRRMMMRMMRMMRMRRRRMRRMMRMMMMRMMMMRRRMRMMRMR'
 \end{lstlisting}
+\vspace{-0.5cm}
 
 \section{Scoring for gaps}
+\vspace{-0.3cm}
 
 \subsection{Question 5}
+\vspace{-0.3cm}
 
-We now consider the possibility of large sequences of amino acids being deleted (inserted) with at a constant score $u$ (chosen to be $-12$ in Program 4). Let $v_{gap}(S,T)$ be the gap-weighted score between $S$ and $T$, and $V_{gap}(i,j)= v_{gap}(S[1,i],T[1,j])$. We then note
+We now consider the possibility of large sequences of amino acids being deleted (inserted) with at a constant score $u$ (chosen here to be $-12$). Let $v_{gap}(S,T)$ be the gap-weighted score between $S$ and $T$, and $V_{gap}(i,j)= v_{gap}(S[1,i],T[1,j])$. We then note
 \begin{equation*}
 \begin{split}
 V_{gap}(i,j) &= \max \{ E(i,j),F(i,j),G(i,j) \} \\
@@ -153,18 +162,23 @@ G(i,j) &= V_{gap}(i-1,j-1)+B(S_i,T_j).
 \end{equation*}
 We could iterate this algorithm on an $n$ by $m$ grid however, it has complexity $\mathcal{O}(mn(m+n))$ which can be improved upon. 
 
-Note $E(i,j) = \underset{0\leq k \leq j-1}{\max} \{ V_{gap}(i,k) + u \} = u + \underset{0\leq k \leq j-1}{\max} \{ V_{gap}(i,k)\}=u+R_{max}(i)$, with $R_{max}(i)$  a new variable we keep count of as the maximum score of the row so far (and what column this occurred in). Similarly, this can be done for $F(i,j)$ with $C_{max}(j)$ maximum column score so far. These two variables need only be updated once each for each $i$ and $j$ as opposed to the extra $i$ and $j$ extra operations each time in the above algorithm. Thus, by introducing and storing the new variables $R_{max}(i)$ and $C_{max}(j)$ we have the basis for an algorithm of the same complexity as Program 1,2 and 3, being $\mathcal{O}(mn)$. We now have the new boundary conditions $V_{gap}(a,0)=V_{gap}(0,b)=u$ for $0 < a \leq m$, $0 < b \leq n$ and $V_{gap}(0,0)=0$. This new algorithm (Program 4) is tested below for Protein A and B.
+Note $E(i,j) = \underset{0\leq k \leq j-1}{\max} \{ V_{gap}(i,k) + u \} = u + \underset{0\leq k \leq j-1}{\max} \{ V_{gap}(i,k)\}=u+R_{max}(i)$, with $R_{max}(i)$  a new variable we keep count of as the maximum score of the row so far (and what column this occurred in). Similarly, this can be done for $F(i,j)$ with $C_{max}(j)$ maximum column score so far. These two variables need only be updated when it changes, saving the $i$ and $j$ extra operations at each step. Thus, by introducing and storing the new variables $R_{max}(i)$ and $C_{max}(j)$ we have the basis for an algorithm of the same complexity as Program 1,2 and 3, being $\mathcal{O}(mn)$. We now have the new boundary conditions $V_{gap}(a,0)=V_{gap}(0,b)=u$ for $0 < a \leq m$, $0 < b \leq n$ and $V_{gap}(0,0)=0$. This new algorithm (Program 4, page~\pageref{subsec:Program 4}) is tested below for Protein A and B.
 
 \lstset{caption={Protein A vs B (gap-weighted score)}}
 \begin{lstlisting}
+>>>D_matrix = np.zeros([m+1,n+1],dtype=int)
+>>>D2_matrix = np.zeros([m+1,n+1],dtype='U4')
+>>>row_max=np.full([m+1,2], -1000, dtype=int)
+>>>col_max=np.full([n+1,2], -1000, dtype=int)
 >>>edit_score_Q5(m,n) #v_{gap}(S,T)
 305
 >>>transcript_Q5(D2_matrix) #first 50 of 154 edits
 'MRDDDDRRRRMMMRMMRMMRMRRRRMRRMMRMMMMRMMMMRRRMRMMRMR'
 \end{lstlisting}
+\vspace{-0.5cm}
 
 \subsection{Question 6}
-
+\vspace{-0.3cm}
 The following shows the gap-weighted edit score and first 50 edits of the edit transcription produced by Program 4 with $S=$ Protein C and $T=$ Protein D (both keratin structures in humans). 
 
 \lstset{caption={Protein C vs D (gap-weighted score)}}
@@ -172,20 +186,18 @@ The following shows the gap-weighted edit score and first 50 edits of the edit t
 >>>S=Protein_C
 >>>T=Protein_D
 >>>m=len(S)
->>>n=len(T)
->>>D_matrix = np.zeros([m+1,n+1],dtype=int)
->>>D2_matrix = np.zeros([m+1,n+1],dtype='U4')
->>>row_max=np.full([m+1,2], -1000, dtype=int)
->>>col_max=np.full([n+1,2], -1000, dtype=int)
+>>>n=len(T) #then reset matricies and row/col max vectors
 >>>edit_score_Q5(m,n) #v_{gap}(S,T)
 1236
 >>>transcript_Q5(D2_matrix) #first 50 of 468 edits
 'MRIIIIIIIIIIIRRMMMRRMRMRMMRRDDDDDDDDDDDDDDDDDDDDDD'
 \end{lstlisting}
 
+\vspace{-0.5cm}
 \section{Statistical Significance}
-
+\vspace{-0.3cm}
 \subsection{Question 7}
+\vspace{-0.4cm}
 Let $U^n,V^n$ be independent identically distributed random vectors for proteins of length $n$ with $\textbf{P}(U^n_i=a)=p$ and $\textbf{P} (U^n_i=b)=1-p$. Use the same scoring system as section 3 with $w(l)=u$ and $s(a,a)=s(b,b)=1, s(a,b)=s(b,a)=-1$. 
 
 \begin{theorem}
@@ -194,27 +206,51 @@ For all $0 \leq p \leq 1$, and for all $u \leq 0$,
 \underset{n \to \infty}{\lim \inf} \frac{\mathbb{E}(v_{gap}(U^n,V^n))}{n}>0.
 \end{equation*}
 \end{theorem}
-
+\vspace{-0.7cm}
 \begin{proof}
-Start with $u \leq -0.5$, this is significant as for this case the is no score benefit of a delete insert edit over a replacement for a single mismatched $(U_i^n,V_i^n)$ pair. Then note $v_{gap}(U^n,V^n) =k(1)+(n-k)(-1) +C_0= 2k-n + C_0$ with $C_0 \geq 0$ and $k$ the number of correctly matched elements of $U^n,V^n$. Then by linearity of expectation, $\mathbb{E}(v_{gap}(U^n,V^n)) \geq 2\mathbb{E}(k)-n$. We see $k$ is binomially distributed with probability of each $k$ being $p_1=p^2+(1-p)^2$. Therefore, $\mathbb{E}(v_{gap}(U^n,V^n)) \geq n(2p_1-1)$. Note, $2p_1-1= (1-2p)^2$ therefore is 0 for $p=1/2$ and strictly positive otherwise. Already this shows $\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} \geq 0$. Now consider when $-0.5 < u \leq 0$ we use a delete insert each time instead of a replacement and it follows  $\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} > 0$. Thus, $\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} \geq \frac{\mathbb{E}(C_0)}{n}$.
+If $u \geq 0$ it is trivial to see this result is true by simply deleting then inserting those mismatched characters and matching otherwise. Else, considering the naive edit strategy, without deletions or insertions, we have $v_{gap}(U^n,V^n) = k(1)+(n-k)(-1) + C_0= 2k-n + C_0$ with $C_0 \geq 0$ (the possible increased score accounting for deletions/insertions) and $k$ the number of correctly matched elements of $U^n,V^n$. Then by linearity of expectation, $\mathbb{E}(v_{gap}(U^n,V^n)) \geq 2\mathbb{E}(k)-n$. We see $k$ is Bin$(n,p_1)$ with $p_1=p^2+(1-p)^2$. Therefore, $\mathbb{E}(v_{gap}(U^n,V^n)) \geq n(2p_1-1)$. Note, $2p_1-1= (1-2p)^2$ therefore is 0 for $p=1/2$ and strictly positive otherwise. Already this shows $\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} \geq 0$.  Thus, $\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} \geq \frac{\mathbb{E}(C_0)}{n}$.
 
-We now consider the value $C_0$, this represents the possible improvements to the score $v_{gap}$ that must come about from group deletion/insertions. We will consider a subset of these possibilities where the corresponding sub-strings (of length $N$) of $U^n$ and $V^n$ are all mismatched. To make such an edit significant, score wise, we need the score of the deletion and insertion of $N$ inline characters to be greater than the score for replacing $N$ characters or $N+2u>0$. Even further, we need the expectation of this increase in score to be at least linear in $n$. Define $N_0 = \lfloor 2-2u \rfloor > 1-2u $ and $n=k_0N_0 + k_1$ for some integers $k_0, k_1 \in \mathbb{N}$, with $0 \leq k_1 < N_0$. For simplicity consider the $k_0N_0$ amino acids collected together into $k_0$ sections of length $N_0$. Each of these individually has the non-zero probability to be fully misaligned with the opposing ($U^n$ or $V^n$) string of $(2p(1-p))^{N_0}=p_2^{N_0}$. Thus considering the number of sections completely misaligned as a binomial distribution, we then know the expected number of misaligned sections is $k_0 p_2^{N_0}$, then multiply by $N_0+2u$ to get the expected increase in score. Therefore, summing over all valid lengths gives $\mathbb{E}(C_0) > \sum_{l=N_0}^n (l+2u)k_0p_2^{l} > \sum_{l=N_0}^n (l+2u)(\frac{n}{l})p_2^{l} > n \sum_{l=N_0}^n (p_2^{l}+2up_2^l / l)$. Then using $N_0>1-2u \Rightarrow \frac{2u}{N_0}>\frac{1-N_0}{N_0} $, so $\mathbb{E}(C_0) > n \sum_{l=N_0}^n p_2^{l}(1+2u/ N_0)>\frac{n}{N_0} \left( \frac{p_2^{N_0}-p_2^n}{1-p_2} \right).$ Thus,
+We now consider the value $C_0$, this represents the possible improvements to the score $v_{gap}$ that must come about from group deletion-insertions. We will consider a subset of these possibilities where there are sub-strings (of length $N$) of $U^n$ and $V^n$ which are all mismatched. To make such an edit significant, score wise, we need the score of the deletion and insertion of $N$ inline characters to be greater than the score for replacing $N$ characters or $-N<2u$. Even further, we need the expectation of this increase in score to be at least linear in $n$. Define $N_0 = \lfloor 2-2u \rfloor > 1-2u $ and $n=k_0N_0 + k_1$ for some integers $k_0, k_1 \in \mathbb{N}$, with $0 \leq k_1 < N_0$. For simplicity consider the $k_0N_0$ amino acids collected together into $k_0$ sections of length $N_0$. Each of these individually has the non-zero probability to be fully misaligned with the opposing ($U^n$ or $V^n$) string of $(2p(1-p))^{N_0}=p_2^{N_0}$. Thus considering the number of sections completely misaligned as a binomial distribution, we then know the expected number of misaligned sections is $k_0 p_2^{N_0}$, then note $N_0+2u$ is the increase in score (over the naive strategy), given such a section exists. Therefore, summing over all valid lengths gives $\mathbb{E}(C_0) > \sum_{l=N_0}^n (l+2u)k_0p_2^{l} > \sum_{l=N_0}^n (l+2u)(\frac{n}{l})p_2^{l} > n \sum_{l=N_0}^n (p_2^{l}+2up_2^l / l)$. Then using $l\geq N_0>1-2u \Rightarrow 1+\frac{2u}{l}>\frac{1}{l} $, so 
 \begin{equation*}
 \begin{split}
-\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} &> \left( \frac{p_2^{N_0}-p_2^n}{N_0(1-p_2)} \right) \\ 
-\therefore \underset{n \to \infty}{\lim \inf} \frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} &> \left( \frac{p_2^{N_0}}{N_0(1-p_2)} \right) >0
+\mathbb{E}(C_0) &> n \sum_{l=N_0}^n \frac{p_2^{l}}{l}> n \int \sum_{l=N_0}^n p_2^{l-1} \  dp_2 = n \int \frac{p_2^{N_0-1}-p_2^n}{1-p_2} \ dp_2 \\
+&> n \int p_2^{N_0-1}-p_2^n \ dp_2 = n \left( \frac{p_2^{N_0}}{N_0} - \frac{p_2^{n+1}}{n+1} \right)\\
+\end{split}
+\end{equation*}
+Thus (for $n>N_0$),
+\begin{equation*}
+\begin{split}
+\frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} &> \left( \frac{p_2^{N_0}}{N_0} - \frac{p_2^{n+1}}{n+1} \right), \\ 
+\therefore \underset{n \to \infty}{\lim \inf} \frac{\mathbb{E} (v_{gap}(U^n,V^n))}{n} & \geq \frac{p_2^{N_0}}{N_0} >0
 \end{split}
 \end{equation*}
 \end{proof}
 
-We can extend this to an even stronger statement that in fact $\underset{n \to \infty}{\lim} \frac{\mathbb{E}(v_{gap}(U^n,V^n))}{n}$ exists and is strictly positive. We can start this by noting the maximum possible score is $n$ ($U^n=V^n$) therefore, the limit has an upper bound of 1. Then note the sequence is monotone increasing by the following logic. Let $a_1 a_2 ... a_n$ be a sequence representing the comparison between strings $U^n$ and $V^n$ and $\mathbb{E}(v(U^n,V^n))=\mathbb{E}(a_1...a_n)$. First we show $\mathbb{E}(a_1...a_n) > \mathbb{E}(a_1)+...+\mathbb{E}(a_n)$. $\mathbb{E}(a_1...a_n)=\mathbb{E}(a_1...a_{n+1})+\mathbb{E}(a_n) +\mathbb{E}(C_1)$ with $\mathbb{E}(C_1)$ the expected increase in score from deletions and insertions of a sequence one amino acid longer. By an argument similar to that in Theorem 4.1 it is clear this must be strictly positive. Then $\mathbb{E}(a_1...a_n) > \mathbb{E}(a_1)+...+\mathbb{E}(a_n)$ follows by induction. So, $\mathbb{E}(a_1a_2) > \mathbb{E}(a_1)+\mathbb{E}(a_2)=2\mathbb{E}(a_1)$ by symmetry, then $\frac{\mathbb{E}(v_{gap}(U^2,V^2))}{2}>\mathbb{E}(v_{gap}(U^1,V^1))$. Then assume $\frac{\mathbb{E}(v_{gap}(U^n,V^n))}{n}>\frac{\mathbb{E}(v_{gap}(U^{n-1},V^{n-1}))}{n-1}$ for all $n \leq k$. We note $\mathbb{E}(a_1...a_n)+\mathbb{E}(a_2...a_{n+1})$ accounts for the section $a_2...a_n$ twice so by inductive hypothesis previous inequality we see $\mathbb{E}(a_1...a_{k+1})>\mathbb{E}(a_1...a_k)+\mathbb{E}(a_2...a_{k+1})-\mathbb{E} (a_2...a_k) = 2\mathbb{E}(v_{gap}(U^k,V^k)) - \mathbb{E}(v_{gap}(U^{k-1},V^{k-1})) > \frac{k+1}{k} \mathbb{E}(v_{gap}(U^k,V^k))$. Thus, $ \mathbb{E}(v_{gap}(U^{k+1},V^{k+1}))/(k+1) > \mathbb{E}(v_{gap}(U^k,V^k))/k$, and so by induction our series is monotone increasing. Then we conclude as the series is monotone increasing and bounded above then the limit exists (analysis theorem), positivity of this limit was shown in Theorem 4.1.
+We can extend this to an even stronger statement in the following theorem.
+\begin{theorem}
+$\underset{n \to \infty}{\lim} \frac{\mathbb{E}(v_{gap}(U^n,V^n))}{n}$ exists and is strictly positive.
+\end{theorem}
+\begin{proof}
+Firstly
+\begin{equation*}
+\begin{split}
+\mathbb{E}(v_{gap}(U^n,V^n)) &= \mathbb{E}(v_{gap}(U^{n-1},V^{n-1})) + p_1-p_2 + \mathbb{E}C_n \\
+&= \mathbb{E}(v_{gap}(U^{n-1},V^{n-1}))+(2p-1)^2 +\mathbb{E}C_n,
+\end{split}
+\end{equation*}
+where $\mathbb{E}C_n \geq 0$ is the expected score improvements by accounting for more complicated delete/insert sequences with the first $n-1$ characters of $U^n, V^n$ interacting with the last. Thus, we see $\mathbb{E}(v_{gap}(U^n,V^n))$ is monotonically increasing. Similarly, we conclude $\mathbb{E}C_n$ must also be monotonically increasing as $\mathbb{E}C_n = \mathbb{E}C_{n-1} + \mathbb{E}D_n$ with $\mathbb{E}D_n \geq 0$ the expected score improvement by considering deleting and reinserting all $n$ characters.
 
+Now we note the best possible score is $v_{gap}(U^n,V^n) = n$ (if $u \leq 0$) thus, $\frac{\mathbb{E}(v_{gap}(U^n,V^n)}{n}\leq 1$. Now consider cases for $\mathbb{E}C_n$ as $n\to\infty$. If it is unbounded, then by monotonicity, $\mathbb{E}C_n \to \infty$. Then, there is an $N_1$ such that $n>N_1$ implies $\mathbb{E}C_n>1$ and so $\frac{\mathbb{E}(v_{gap}(U^n,V^n)}{n}$ must be monotone increasing eventually, but we know it is bounded above so the limit $\underset{n\to\infty}{\lim} \frac{\mathbb{E}(v_{gap}(U^n,V^n)}{n}$ must converge. If $\mathbb{E}C_n$ is bounded above, then by monontonicity, $\mathbb{E}C_n \to \kappa$ as $n\to\infty$. If $\kappa>1$ then, similarly to above, there exists an $N_2$ such that for $n>N_2$, $\frac{\mathbb{E}(v_{gap}(U^n,V^n)}{n}$ is monotonic increasing and so it converges. If $\kappa \leq 1$, then $\frac{\mathbb{E}(v_{gap}(U^n,V^n)}{n}$ is monotonic decreasing for all $n$, and so, using the lower bound for the limit as $n\to\infty$ found in the previous theorem we conclude $\frac{\mathbb{E}(v_{gap}(U^n,V^n)}{n}$ must converge as $n\to\infty$. This covers all possibilities and so the limit must exist and this must be in the interval $\left[ \frac{p_2^{N_0}}{N_0}, 1 \right]$ with $N_0$ as defined previously.
+\end{proof}
+
+\vspace{-0.5cm}
 \subsection{Question 8}
-In Program 5 we estimate $n^{-1}\mathbb{E}(v_{gap}(U^n,V^n))$ by randomly generating protein string pairs $U^n$ and $V^n$ then calculating the exact score of $v_{gap}(U^n,V^n)/n$. We then average this over a large number of attempts ($N$) to attain an approximation of the expected value. The following shows some examples.
+\vspace{-0.3cm}
+In Program 5 (page~\pageref{subsec:Program 5}) we estimate $n^{-1}\mathbb{E}(v_{gap}(U^n,V^n))$ for $u=-3$ and $p=0.5$, by randomly generating protein string pairs $U^n$ and $V^n$ then calculating the exact score of $v_{gap}(U^n,V^n)/n$. We then average this over a large number of attempts ($N$) to attain an approximation of the expected value. The following shows some examples.
 
 \lstset{caption={$n=1$ over 1000 tests}}
 \begin{lstlisting}
->>> estimate(1,1000) #true value is known to be exactly 1
+>>> estimate(1,1000) #true value is known to be exactly 0
 0.038
 >>> estimate(1,1000)
 -0.02 
@@ -235,8 +271,9 @@ In Program 5 we estimate $n^{-1}\mathbb{E}(v_{gap}(U^n,V^n))$ by randomly genera
 \end{lstlisting}
 
 Listing 8 shows the program appears to show consistency with the known result of 0. Listing 9 shows with increasingly accurate estimates for the limit of $n^{-1}\mathbb{E}(v_{gap}(U^n,V^n))$ as $n \to \infty$. Note that for higher values of $n$ the variance of the distribution becomes negligible and so large values of $N$ are not required (to assist with computation time). With each tenfold rise in $n$ (starting at n=10) we see the estimate rise by an amount $1/4$th of the previous increase, extrapolating this gives: $\underset{n\to \infty}{\lim} n^{-1}\mathbb{E}(v_{gap}(U^n,V^n)) \approx 0.1+0.27(1+1/4+(1/4)^2+...)=0.46$.
-
+\vspace{-0.5cm}
 \section{Local Alignment}
+\vspace{-0.3cm}
 In this section we consider local alignment and attempt to find the pair of substrings $S'$ and $T'$ of $S$ and $T$ with the highest alignment score namely,
 \begin{equation*}
 v_{sub}(S,T) = \max \{ v(S',T'):S' \text{ a substring of } S, T' \text{ a substring of } T \}.
@@ -245,30 +282,36 @@ We will use the scoring system of section 2 for simplicity, write $s(-,a)=s(a,-)
 \begin{equation*}
 v_{sfx}(S,T)=\max \{ v(S',T'):S' \text{ a suffix of } S, T' \text{ a suffix of } T \}.
 \end{equation*}
-
+\vspace{-1cm}
 \subsection{Question 9}
+\vspace{-0.3cm}
 
 \begin{theorem}
 $v_{sub}(S,T)= \max \{ v_{sfx}(S',T'):S' \text{ a prefix of } S,T' \text{ a prefix of } T \}$.
 \end{theorem}
-
+\vspace{-0.7cm}
 \begin{proof}
 \begin{equation*}
 \begin{split}
 RHS &= \max \{ v_{sfx}(S',T'):S' \text{ a prefix of } S,T' \text{ a prefix of } T \} \\
 &= \max \left \{ \sum_{0 \leq i \leq m, 0 \leq j \leq n} v_{sfx}(S[1,i],T[1,j]) \right \} \\
-&= \max \left \{ \sum_{0 \leq i \leq m, 0 \leq j \leq n} \max \left \{ \sum_{1 \leq a \leq m,1 \leq b \leq n} v(S[a,i],T[b,j]) \right \} \right \}\\
-& \text{then as n and m are finite,} \\
-&= \max \left \{ \sum_{0 \leq i \leq m, 0 \leq j \leq n,1 \leq a \leq m,1 \leq b \leq n} v(S[a,i],T[b,j]) \right \} \\
+&= \max \left \{ \sum_{0 \leq i \leq m, 0 \leq j \leq n} \max \left \{ \sum_{1 \leq a \leq m,1 \leq b \leq n} v(S[a,i],T[b,j]) \right \} \right \}. \\
+\end{split}
+\end{equation*}
+Then as n and m are finite,
+\begin{equation*}
+\begin{split}
+RHS&= \max \left \{ \sum_{0 \leq i \leq m, 0 \leq j \leq n,1 \leq a \leq m,1 \leq b \leq n} v(S[a,i],T[b,j]) \right \} \\
 &= \max \{ v(S',T'): S' \text{ a substring of } S, T' \text{ a substring of } T \} \\
 &= v_{sub}(S,T) = LHS.
 \end{split}
 \end{equation*}
-Thus the theorem is proven true.
+Thus, $v_{sub}(S,T)= \max \{ v_{sfx}(S',T'):S' \text{ a prefix of } S,T' \text{ a prefix of } T \}$.
 \end{proof}
+\vspace{-0.5cm}
 
 \subsection{Question 10}
-
+\vspace{-0.3cm}
 \begin{theorem}
 Define $V_{sfx}(i,j) = v_{sfx}(S[1,i],T[1,j])$, then
 \begin{equation*}
@@ -282,14 +325,15 @@ V_{sfx}(i,j) = \max
 \end{equation*}
 with boundary conditions $V_{sfx}(i,0)=V_{sfx}(0,j)=0.$
 \end{theorem}
-
+\vspace{-0.5cm}
 \begin{proof}
 Similar to Theorem1.1 we consider the possible cases. We first note that the final edit does not affect the beginning of the suffix (this trivially leads to a contradiction on the previous string being optimal if assumed otherwise) unless the maximum suffix of non-zero length is now negative, in which case the maximum suffix becomes the empty string with 0 score. Otherwise, if the last edit should be a matching or replacement then it follows $V_{sfx}(i,j) = V_{sfx}(i-1,j-1)+B(S_i,T_j)$. Similarly if the last edit should be a delete then $V_{sfx}(i,j) = V_{sfx}(i-1,j)+s(S_i,-)$ and if the last edit should be an insert then $V_{sfx}(i,j) =V_{sfx}(i,j-1)+s(-,T_j)$. This covers all possible cases leaving $V_{sfx}(i,j) $ as the maximum of the four, as seen in the theorem. The boundary conditions follow naturally as the suffix must be an empty string as otherwise the optimal score would be negative with only deletions/insertions.
 \end{proof}
+\vspace{-0.5cm}
 
 \subsection{Question 11}
-
-Using the Theorems 5.1 and 5.2 we can write a program of complexity $\mathcal{O}(mn)$ to calculate the score, exact sub-strings and required edits that correspond to $v_{sub}(S,T)$. This is completed by first calculating the $mn$ values of $V_{sfx}(i,j)$ using a similar $\mathcal{O}(mn)$ algorithm to section 2 then determining the maximum of these, which must correspond to $v_{sub}(S,T)$. Then it is only a matter of forming the edit transcript following back until the start of these sub-strings (again done previously in $\mathcal{O}(mn)$ ). Program 6 completes this and the results follow:
+\vspace{-0.3cm}
+Using the Theorems 5.1 and 5.2 we can write a program of complexity $\mathcal{O}(mn)$ to calculate the score, exact sub-strings and required edits that correspond to $v_{sub}(S,T)$. This is completed by first calculating the $mn$ values of $V_{sfx}(i,j)$ using a similar $\mathcal{O}(mn)$ algorithm to section 2 then determining the maximum of these, which must correspond to $v_{sub}(S,T)$. Then it is only a matter of forming the edit transcript following back until the start of these sub-strings (again done previously with complexity $\mathcal{O}(mn)$ ). Program 6 (page~\pageref{subsec:Program 6}) completes this and returns the following results:
 
 \lstset{caption={Calculating $v_{sub}$}}
 \begin{lstlisting}
@@ -298,25 +342,442 @@ v_sub = 1312, substrings: S[33,430], T[6,411]
 MMMRIRMRMMDMDDDDDDMDMMDDRDMRRMIMRIRMIIMRMMRMRRMRMM 
 \end{lstlisting}
 
+\newpage
 
+\section{Appendices}
+* Note all code written in Python using packages as defined within each program.
+\vspace{-0.5cm}
+\subsection{Program 1}
+\vspace{-0.3cm}
+\label{subsec:Program 1}
+Consisting of two functions program 1, specifically $edit\_dist(m,n)$, is able to calculate the value of $D(i,j)$ for some pre-set strings $S$ and $T$ as defined with the report. 
+\lstset{caption={Program 1}}
+\begin{lstlisting}
+def D(i,j,S,T,D_matrix):
+    if i==0:
+        answer = j
+    elif j==0:
+        answer = i
+    else:
+        S_i = S[i-1]
+        T_j = T[j-1]
+        if S_i==T_j:
+            delta = 1
+        else:
+            delta = 0
+        a = D_matrix[i][j-1]+1
+        b = D_matrix[i-1][j]+1
+        c = D_matrix[i-1][j-1]+1-delta
+        answer = min(a, b, c)
+    return answer
 
+def edit_dist(m,n):
+    if m > len(S) or m < 0 or n > len(T) or n < 0:
+        return 'Index out of range.'
+    D_matrix = np.zeros([m + 1, n + 1], dtype=int)
+    b=0
+    while b <= n :
+        a=0
+        while a <= m:
+            D_matrix[a][b] = D(a,b,S,T,D_matrix)
+            a=a+1
+        b=b+1
+    return D_matrix[m][n]
+\end{lstlisting}
+\vspace{-0.5cm}
+\subsection{Program 2}
+\vspace{-0.3cm}
+\label{subsec:Program 2}
+Extending upon the approach of Program 1 the following three programs will update two matrices $D\_matrix$ and $D2\_matrix$ which record the scores $D(i,j)$ and possible (optimal) edits at each step as a string. The code is to be used as seen in Listing 4.
+\lstset{caption={Program 2}}
+\begin{lstlisting}
+def D2(i,j,S,T):
+    if i==0 and j==0:
+        D_matrix[i][j] = 0
+        D2_matrix[i][j] = ''
+    elif i==0 and j!=0:
+        D_matrix[i][j] = j
+        D2_matrix[i][j] = 'I'
+    elif j==0 and i!=0:
+        D_matrix[i][j] = i
+        D2_matrix[i][j] = 'D'
+    else:
+        S_i = S[i-1]
+        T_j = T[j-1]
+        if S_i==T_j:
+            delta = 1
+        else:
+            delta = 0
+        a = D_matrix[i][j-1]+1
+        b = D_matrix[i-1][j]+1
+        c = D_matrix[i-1][j-1]+1-delta
+        answer = min(a, b, c)
+        next_edit = ''
+        #Separate 'if' options to add all of the possible edit choices.
+        if answer == a:
+            next_edit = 'I'
+        if answer == b:
+            next_edit += 'D'
+        if answer == c and delta == 1:
+            next_edit += 'M'
+        elif answer == c and delta == 0:
+            next_edit += 'R'
+        D_matrix[i][j] = answer
+        D2_matrix[i][j] = next_edit
+    return
 
+def edit_dist2(m,n):
+    b=0
+    while b<=n:
+        a=0
+        while a<=m:
+            D2(a,b,S,T)
+            a=a+1
+        b=b+1
+    return D_matrix[m][n]
 
+def transcript(D2_matrix):
+    edit_transcript = ''
+    i=m
+    j=n
+    while i!=0 or j!=0:
+        #if more than one edit possible choose the first.
+        edit = D2_matrix[i][j][0]
+        edit_transcript += edit
+        if edit == 'I':
+            j=j-1
+        elif edit == 'D':
+            i=i-1
+        else:
+            i=i-1
+            j=j-1
+    #print(len(edit_transcript))
 
+    #reverse order
+    edit_transcript = edit_transcript[::-1]
+    return edit_transcript[0:50]
+\end{lstlisting}
+\vspace{-0.5cm}
+\subsection{Program 3}
+\vspace{-0.3cm}
+\label{subsec:Program 3}
+Using biopython's blosum62 matrix and the scoring system described within the project the following program implements a similar algorithm to calculate the maximal scores $V(i,j)$ and a possible corresponding edit transcript.
+\lstset{caption={Program 3}}
+\begin{lstlisting}
+from Bio.SubsMat import MatrixInfo as matrixFile
+blosum = matrixFile.blosum62
 
+def D_Q4(i,j,S,T):
+    if i==0 and j==0:
+        D_matrix[i][j] = 0
+        D2_matrix[i][j] = ''
+    elif i==0 and j!=0:
+        D_matrix[i][j] = -j*8
+        D2_matrix[i][j] = 'I'
+    elif j==0 and i!=0:
+        D_matrix[i][j] = -i*8
+        D2_matrix[i][j] = 'D'
+    else:
+        S_i = S[i-1]
+        T_j = T[j-1]
+        if blosum.get((S_i,T_j)) == None:
+            s = blosum.get((T_j,S_i))
+        else:
+            s = blosum.get((S_i,T_j))
+        a = D_matrix[i][j-1]-8
+        b = D_matrix[i-1][j]-8
+        c = D_matrix[i-1][j-1] + int(s)
+        answer = max(a, b, c)
+        next_edit = ''
+        if answer == a:
+            next_edit = 'I'
+        if answer == b:
+            next_edit += 'D'
+        if answer == c and S_i==T_j:
+            next_edit += 'M'
+        elif answer == c and S_i!=T_j:
+            next_edit += 'R'
+        D_matrix[i][j] = answer
+        D2_matrix[i][j] = next_edit
+    return
 
+def edit_score_Q4(m,n):
+    b=0
+    while b<=n:
+        a=0
+        while a<=m:
+            D_Q4(a,b,S,T)
+            a=a+1
+        b=b+1
+    return D_matrix[m][n]
 
+def transcript_Q4(D2_matrix):
+    edit_transcript = ''
+    i=m
+    j=n
+    while i!=0 or j!=0:
+        edit = D2_matrix[i][j][0]
+        edit_transcript += edit
+        if edit == 'I':
+            j=j-1
+        elif edit == 'D':
+            i=i-1
+        else:
+            i=i-1
+            j=j-1
+    #print(len(edit_transcript))
 
+    edit_transcript = edit_transcript[::-1]
+    return edit_transcript[0:50]
+\end{lstlisting}
+\vspace{-0.5cm}
+\subsection{Program 4}
+\vspace{-0.3cm}
+\label{subsec:Program 4}
+This program further extends upon the previous methods now allowing for gaps of arbitrary length to be deleted or inserted. Note: you must reset the variables $row\_max$, $col\_max$, $D\_matrix$ and $D2\_matrix$ each time.
+\lstset{caption={Program 4}}
+\begin{lstlisting}
+row_max=np.full([m+1,2], -1000, dtype=int)
+col_max=np.full([n+1,2], -1000, dtype=int)
 
+def D_Q5(i,j,S,T):
+    if i==0 and j==0:
+        D_matrix[i][j] = 0
+        D2_matrix[i][j] = ''
+        row_max[0] = [0,0]
+        col_max[0] = [0,0]
+    elif i==0 and j!=0:
+        D_matrix[i][j] = -12
+        D2_matrix[i][j] = 'I0'
+        col_max[j] = [max(col_max[j][0], -12), i]
+    elif j==0 and i!=0:
+        D_matrix[i][j] = -12
+        D2_matrix[i][j] = 'D0'
+        row_max[i] = [max(row_max[j][0], -12), j]
+    else:
+        S_i = S[i-1]
+        T_j = T[j-1]
+        if blosum.get((S_i,T_j)) == None:
+            s = blosum.get((T_j,S_i))
+        else:
+            s = blosum.get((S_i,T_j))
+        p = row_max[i][0] - 12
+        q = col_max[j][0] - 12
+        r = D_matrix[i-1][j-1] + int(s)
+        answer = max(p, q, r)
+        new_row = max(row_max[i][0],answer)
+        new_col = max(col_max[j][0],answer)
+        if row_max[i][0] < answer:
+            row_max[i] = [new_row, j]
+        if col_max[j][0] < answer:
+            col_max[j] = [new_col, i]
+        next_edit = ''
+        if answer == p:
+            next_edit = 'I' + str(row_max[i][1])
+        elif answer == q:
+            next_edit = 'D' + str(col_max[j][1])
+        elif answer == r and S_i==T_j:
+            next_edit = 'M'
+        elif answer == r and S_i!=T_j:
+            next_edit = 'R'
+        D_matrix[i][j] = answer
+        D2_matrix[i][j] = next_edit
+    return
 
+def edit_score_Q5(m,n):
+    b=0
+    while b<=n:
+        a=0
+        while a<=m:
+            D_Q5(a,b,S,T)
+            a=a+1
+        b=b+1
+    return D_matrix[m][n]
 
+def transcript_Q5(D2_matrix):
+    edit_transcript = ''
+    i=m
+    j=n
+    while i!=0 or j!=0:
+        edit = D2_matrix[i][j][0]
+        if edit == 'I':
+            gap = j - int(D2_matrix[i][j][1:])
+            edit = edit * gap
+            j=j-gap
+        elif edit == 'D':
+            gap = i - int(D2_matrix[i][j][1:])
+            edit = edit * gap
+            i=i-gap
+        else:
+            i=i-1
+            j=j-1
+        edit_transcript += edit
+    #print(len(edit_transcript))
+    edit_transcript = edit_transcript[::-1]
+    return edit_transcript[0:50]
+\end{lstlisting}
+\vspace{-0.5cm}
+\subsection{Program 5}
+\vspace{-0.3cm}
+\label{subsec:Program 5} 
+The first two functions are essentially equivalent to those in program 4, but with unnecessary calculations removed for improved efficiency. The third function then computes an estimate for the limit $n^{-1}\mathbb{E}(v_{gap}(U^n,V^n))$ as $n\to\infty$.
+\lstset{caption={Program 5}}
+\begin{lstlisting}
+u=-3
+p=0.5
 
+def D_Q8(i,j,S,T, D_matrix, row_max, col_max):
+    if i==0 and j==0:
+        D_matrix[i][j] = 0
+        row_max[0] = [0,0]
+        col_max[0] = [0,0]
+    elif i==0 and j!=0:
+        D_matrix[i][j] = u
+        col_max[j] = [max(col_max[j][0], u), i]
+    elif j==0 and i!=0:
+        D_matrix[i][j] = u
+        row_max[i] = [max(row_max[j][0], u), j]
+    else:
+        S_i = S[i-1]
+        T_j = T[j-1]
+        if S_i==T_j:
+            delta=1
+        else:
+            delta=-1
+        p = row_max[i][0] + u
+        q = col_max[j][0] + u
+        r = D_matrix[i-1][j-1] + delta
+        answer = max(p, q, r)
+        new_row = max(row_max[i][0],answer)
+        new_col = max(col_max[j][0],answer)
+        if row_max[i][0] < answer:
+            row_max[i] = [new_row, j]
+        if col_max[j][0] < answer:
+            col_max[j] = [new_col, i]
+        D_matrix[i][j] = answer
+    return
 
+def edit_score_Q8(m,n,S,T):
+    b=0
+    D_matrix = np.zeros([n + 1, m + 1], dtype=int)
+    row_max = np.full([m + 1, 2], -1000, dtype=int)
+    col_max = np.full([n + 1, 2], -1000, dtype=int)
+    while b<=m:
+        a=0
+        while a<=n:
+            D_Q8(a,b,S,T,D_matrix, row_max, col_max)
+            a=a+1
+        b=b+1
+    return D_matrix[m][n]
 
+def estimate(num, tests):
+    total_est = 0
+    i=0
+    while i < tests:
+        j=0
+        S=''
+        T=''
+        while j<num:
+            #a=0,b=1
+            amino_acid1 = random.randint(0, 1)
+            amino_acid2 = random.randint(0, 1)
+            S = S + str(amino_acid1)
+            T = T + str(amino_acid2)
+            j=j+1
+        est0 = edit_score_Q8(num,num,S,T)
+        est=est0/num
+        total_est = total_est + est
+        i=i+1
+    avg_est = total_est / tests
+    return avg_est
+\end{lstlisting}
+\vspace{-0.5cm}
+\subsection{Program 6}
+\vspace{-0.3cm}
+\label{subsec:Program 6} 
+This final program contains two functions, calling $v\_sub$ will use $form\_matrix$ to produce a summary of the most similar substrings between proteins C and D.
+\lstset{caption={Program 6}}
+\begin{lstlisting}
+def form_matrix():
+    S = Protein_C
+    T = Protein_D
+    m = len(S)
+    n = len(T)
+    V_sfx_matrix = np.zeros([m + 1, n + 1], dtype=int)
+    V_sfx_matrix2 = np.zeros([m + 1, n + 1], dtype='U4')
+    b=0
+    while b<n+1:
+        a=0
+        while a<m+1:
+            if a == 0 or b == 0:
+                V_sfx_matrix[a][b] = 0
+                V_sfx_matrix2[a][b] = ''
+            else:
+                S_a = S[a-1]
+                T_b = T[b-1]
+                if blosum.get((S_a, T_b)) == None:
+                    s = blosum.get((T_b, S_a))
+                else:
+                    s = blosum.get((S_a, T_b))
+                Rep_match = V_sfx_matrix[a-1][b-1] + s
+                Del = V_sfx_matrix[a-1][b]-2
+                Ins = V_sfx_matrix[a][b-1]-2
 
+                V_a_b = max(0, Rep_match, Del, Ins)
+                V_sfx_matrix[a,b] = V_a_b
 
+                if V_a_b == 0:
+                    V_sfx_matrix2[a][b] = 'B'
+                elif V_a_b == Rep_match and S_a == T_b:
+                    V_sfx_matrix2[a][b] = 'M'
+                elif V_a_b == Rep_match and S_a != T_b:
+                    V_sfx_matrix2[a][b] = 'R'
+                elif V_a_b == Del:
+                    V_sfx_matrix2[a][b] = 'D'
+                elif V_a_b == Ins:
+                    V_sfx_matrix2[a][b] = 'I'
+            a=a+1
+        b=b+1
+    return [V_sfx_matrix, V_sfx_matrix2]
 
+def v_sub():
+    matricies = form_matrix()
+    max = np.max(matricies[0])
+    idx = np.where(matricies[0] == max)
+    start_i = idx[0][0]
+    start_j = idx[1][0]
 
+    i=start_i
+    j=start_j
+    edit = ''
+    edit_transcript = ''
+    while edit != "B":
+        edit_transcript += edit
+        edit = matricies[1][i][j]
+        if edit == 'I':
+            j=j-1
+        elif edit == 'D':
+            i=i-1
+        elif edit == 'M' or edit == 'R':
+            i=i-1
+            j=j-1
+    if edit_transcript[-1] == 'I':
+        end_i=i
+        end_j=j+1
+    elif edit_transcript[-1] == 'D':
+        end_i=i+1
+        end_j=j
+    else:
+        end_i=i+1
+        end_j=j+1
+
+    output = 'v_sub = ' +str(max) + ', substrings: S[' + str(end_i) + ',' + str(start_i) + '], T[' + str(end_j) + ',' + str(start_j) +']'
+    edit_transcript = edit_transcript[::-1]
+
+    print(output)
+    #print(len(edit_transcript))
+    print(edit_transcript[0:50])
+\end{lstlisting}
 
 
 \end{document}
